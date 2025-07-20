@@ -53,6 +53,7 @@
     <button type="button" data-action="on">ON</button>
     <button type="button" data-action="off">OFF</button>
     <div id="errorMsg"></div>
+    <div id="counter">現在: 0 / 100</div>
   </form>
 
   <div id="checkboxContainer"></div>
@@ -205,6 +206,10 @@
         if(nums.length === 0) {
           errorMsg.textContent = '番号を入力してね';
           return;
+        }
+        function updateCounter() {
+        const count = Object.values(savedStates).filter(v => v === true).length;
+        document.getElementById('counter').textContent = `現在: ${count} / 100`;
         }
         updateCheckboxes(nums, button.dataset.action);
         numInput.value = '';
