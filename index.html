@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: sans-serif;
-      max-width: 400px;
+      max-width: 450px;
       margin: 20px auto;
     }
     label {
@@ -23,14 +23,16 @@
       margin-bottom: 20px;
     }
     #toggleForm input[type="text"] {
-      width: 200px;
+      width: 220px;
       padding: 4px;
       font-size: 16px;
+      margin-right: 10px;
     }
     #toggleForm button {
-      padding: 5px 10px;
+      padding: 5px 12px;
       font-size: 16px;
       cursor: pointer;
+      margin-right: 6px;
     }
     #errorMsg {
       color: red;
@@ -42,12 +44,14 @@
 </head>
 <body>
 
-  <h1>1〜100 チェックボックス</h1>
+  <h1>ガチャメモ</h1>
 
   <form id="toggleForm">
-    <label for="numInput">番号を入力(1〜100)またはカンマ区切りで</label><br />
+    <label for="numInput">番号入力(1〜100)またはカンマ区切りで複数指定</label><br/>
     <input type="text" id="numInput" placeholder="例: 1,3,5,20 または 7" />
-    <button type="submit">切替</button>
+    <button type="submit" data-action="toggle">切替</button>
+    <button type="button" data-action="on">ON</button>
+    <button type="button" data-action="off">OFF</button>
     <div id="errorMsg"></div>
   </form>
 
@@ -80,46 +84,91 @@
       container.appendChild(label);
     }
 
-    // フォームsubmitイベントで複数番号処理
+    // 使い回し番号チェック関数
+    function parseNumbers(input) {
+      return input.split(',')
+        .map(s => s.trim())
+        .filter(s => s !== '')
+        .map(str => Number(str))
+        .filter(num => !isNaN(num) && num >=1 && num <= 100);
+    }
+
+    // 無効番号チェック
+    function findInvalids(input) {
+      const parts = input.split(',').map(s => s.trim());
+      return parts.filter(s => {
+        const num = Number(s);
+        return s !== '' && (isNaN(num) || num <1 || num > 100);
+      });
+    }
+
+    // 共通処理：チェック操作
+    function updateCheckboxes(nums, mode) {
+      // mode: 'toggle', 'on', 'off'
+      nums.forEach(num => {
+        const cb = document.getElementById(`chk_${num}`);
+        if(!cb) return;
+        switch(mode) {
+          case 'toggle':
+            if(!cb.checked) {  // ONのはスルー
+              cb.checked = true;
+              savedStates[num] = true;
+            }
+            break;
+          case 'on':
+            if(!cb.checked) {
+              cb.checked = true;
+              savedStates[num] = true;
+            }
+            break;
+          case 'off':
+            if(cb.checked) {
+              cb.checked = false;
+              savedStates[num] = false;
+            }
+            break;
+        }
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+    }
+
+    // フォームsubmit（切替ボタン）
     form.addEventListener('submit', e => {
       e.preventDefault();
       errorMsg.textContent = '';
-
-      // 入力をカンマ区切りで分割しトリム
-      const inputs = numInput.value.split(',').map(s => s.trim()).filter(s => s !== '');
-      const invalids = [];
-      const processed = [];
-
-      inputs.forEach(str => {
-        const val = Number(str);
-        if (val >= 1 && val <= 100 && !isNaN(val)) {
-          processed.push(val);
-        } else if (str !== '') {
-          invalids.push(str);
-        }
-      });
-
-      if (invalids.length > 0) {
+      const input = numInput.value;
+      const invalids = findInvalids(input);
+      if(invalids.length > 0) {
         errorMsg.textContent = `無効な番号があります: ${invalids.join(', ')}`;
         return;
       }
-
-      if (processed.length === 0) {
+      const nums = parseNumbers(input);
+      if(nums.length === 0) {
         errorMsg.textContent = '番号を入力してね';
         return;
       }
-
-      // トグル処理
-      processed.forEach(num => {
-        const checkbox = document.getElementById(`chk_${num}`);
-        if(checkbox) {
-          checkbox.checked = !checkbox.checked;
-          savedStates[num] = checkbox.checked;
-        }
-      });
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+      updateCheckboxes(nums, 'toggle');
       numInput.value = '';
+    });
+
+    // ON/OFFボタン
+    form.querySelectorAll('button[data-action="on"], button[data-action="off"]').forEach(button => {
+      button.addEventListener('click', () => {
+        errorMsg.textContent = '';
+        const input = numInput.value;
+        const invalids = findInvalids(input);
+        if(invalids.length > 0) {
+          errorMsg.textContent = `無効な番号があります: ${invalids.join(', ')}`;
+          return;
+        }
+        const nums = parseNumbers(input);
+        if(nums.length === 0) {
+          errorMsg.textContent = '番号を入力してね';
+          return;
+        }
+        updateCheckboxes(nums, button.dataset.action);
+        numInput.value = '';
+      });
     });
   </script>
 
