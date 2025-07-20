@@ -19,28 +19,56 @@
       transform: scale(1.2);
       vertical-align: middle;
     }
+    #toggleForm {
+      margin-bottom: 20px;
+    }
+    #toggleForm input[type="number"] {
+      width: 60px;
+      padding: 4px;
+      font-size: 16px;
+    }
+    #toggleForm button {
+      padding: 5px 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #errorMsg {
+      color: red;
+      margin-top: 6px;
+      height: 18px;
+    }
   </style>
 </head>
 <body>
 
   <h1>1〜100 チェックボックス</h1>
-  <p>保存されます</p>
+
+  <form id="toggleForm">
+    <label for="numInput">番号入力(1〜100)してチェック切り替え</label>
+    <input type="number" id="numInput" min="1" max="100" />
+    <button type="submit">切替</button>
+    <div id="errorMsg"></div>
+  </form>
+
   <div id="checkboxContainer"></div>
 
   <script>
     const container = document.getElementById('checkboxContainer');
     const STORAGE_KEY = 'checkboxStates';
+    const form = document.getElementById('toggleForm');
+    const numInput = document.getElementById('numInput');
+    const errorMsg = document.getElementById('errorMsg');
 
-    // 保存されてるデータ取得 or 空オブジェクト
+    // localStorageから取得
     const savedStates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    // 1~100チェックボックス生成
+    // チェックボックス生成
     for(let i = 1; i <= 100; i++) {
       const label = document.createElement('label');
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.id = `chk_${i}`;
-      checkbox.checked = !!savedStates[i]; // 保存されてたらチェック
+      checkbox.checked = !!savedStates[i];
 
       checkbox.addEventListener('change', () => {
         savedStates[i] = checkbox.checked;
@@ -51,6 +79,31 @@
       label.appendChild(document.createTextNode(` No.${i}`));
       container.appendChild(label);
     }
+
+    // 番号入力フォームのsubmitイベント
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const val = Number(numInput.value);
+
+      if(val < 1 || val > 100 || isNaN(val)) {
+        errorMsg.textContent = '1から100の数字を入力してね';
+        return;
+      }
+
+      const checkbox = document.getElementById(`chk_${val}`);
+      if(!checkbox) {
+        errorMsg.textContent = '対応するチェックボックスがありません';
+        return;
+      }
+
+      // チェック状態トグル
+      checkbox.checked = !checkbox.checked;
+      savedStates[val] = checkbox.checked;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+
+      numInput.value = '';
+    });
   </script>
 
 </body>
