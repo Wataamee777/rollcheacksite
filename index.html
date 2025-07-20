@@ -75,10 +75,14 @@
 
     // 更新して○/100表示
     function updateCount() {
-      const checkedCount = [...document.querySelectorAll('#checkboxContainer input[type=checkbox]')]
-        .filter(cb => cb.checked).length;
-      countDisplay.textContent = `現在: ${checkedCount} / 100`;
-    }
+      let count = 0;
+      for (let i = 1; i <= 100; i++) {
+        const cb = document.getElementById(`chk_${i}`);
+        if (cb && cb.checked) count++;
+      }
+      countDisplay.textContent = `現在: ${count} / 100`;
+     }
+
 
     // 保存関数（容量＆重複チェックつき）
     function saveStates(newStates) {
