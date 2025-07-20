@@ -75,8 +75,15 @@
       checkbox.checked = !!savedStates[i];
 
       checkbox.addEventListener('change', () => {
-        savedStates[i] = checkbox.checked;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+        const update = {};
+        update[i] = checkbox.checked;
+        if(saveStates(update)) {
+          Object.assign(savedStates, update);
+        } else {
+          // 保存失敗時は元に戻す
+          checkbox.checked = !checkbox.checked;
+          alert('保存に失敗したため元に戻しました。');
+        }
       });
 
       label.appendChild(checkbox);
@@ -102,34 +109,67 @@
       });
     }
 
+    // 保存関数（容量チェック＆重複チェックつき）
+    function saveStates(newStates) {
+      const current = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+      // 重複チェック（完全に同じ状態のやつだけ警告）
+      const duplicates = Object.keys(newStates).filter(k => current[k] !== undefined && current[k] === newStates[k]);
+      if(duplicates.length === Object.keys(newStates).length) {
+        alert(`番号 ${duplicates.join(', ')} はすでに同じ状態で保存されています。`);
+        return false;
+      }
+
+      // マージ
+      const merged = {...current, ...newStates};
+      const jsonStr = JSON.stringify(merged);
+      const bytes = new Blob([jsonStr]).size;
+
+      if(bytes > 5 * 1024 * 1024) {
+        alert('保存できません。localStorageの容量上限に達しました。');
+        return false;
+      }
+
+      localStorage.setItem(STORAGE_KEY, jsonStr);
+      return true;
+    }
+
     // 共通処理：チェック操作
     function updateCheckboxes(nums, mode) {
-      // mode: 'toggle', 'on', 'off'
+      const newStates = {};
       nums.forEach(num => {
         const cb = document.getElementById(`chk_${num}`);
         if(!cb) return;
         switch(mode) {
           case 'toggle':
-            if(!cb.checked) {  // ONのはスルー
+            if(!cb.checked) {
               cb.checked = true;
-              savedStates[num] = true;
+              newStates[num] = true;
             }
             break;
           case 'on':
             if(!cb.checked) {
               cb.checked = true;
-              savedStates[num] = true;
+              newStates[num] = true;
             }
             break;
           case 'off':
             if(cb.checked) {
               cb.checked = false;
-              savedStates[num] = false;
+              newStates[num] = false;
             }
             break;
         }
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+
+      if(Object.keys(newStates).length > 0) {
+        if(!saveStates(newStates)) {
+          alert('保存に失敗したため、チェック状態を変更しませんでした。');
+          // 失敗時は元に戻す処理もできるけど今回は警告のみ
+        } else {
+          Object.assign(savedStates, newStates);
+        }
+      }
     }
 
     // フォームsubmit（切替ボタン）
