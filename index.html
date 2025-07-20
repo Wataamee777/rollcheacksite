@@ -22,8 +22,8 @@
     #toggleForm {
       margin-bottom: 20px;
     }
-    #toggleForm input[type="number"] {
-      width: 60px;
+    #toggleForm input[type="text"] {
+      width: 200px;
       padding: 4px;
       font-size: 16px;
     }
@@ -36,6 +36,7 @@
       color: red;
       margin-top: 6px;
       height: 18px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -44,8 +45,8 @@
   <h1>1〜100 チェックボックス</h1>
 
   <form id="toggleForm">
-    <label for="numInput">番号入力(1〜100)してチェック切り替え</label>
-    <input type="number" id="numInput" min="1" max="100" />
+    <label for="numInput">番号を入力(1〜100)またはカンマ区切りで</label><br />
+    <input type="text" id="numInput" placeholder="例: 1,3,5,20 または 7" />
     <button type="submit">切替</button>
     <div id="errorMsg"></div>
   </form>
@@ -59,7 +60,6 @@
     const numInput = document.getElementById('numInput');
     const errorMsg = document.getElementById('errorMsg');
 
-    // localStorageから取得
     const savedStates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
     // チェックボックス生成
@@ -80,28 +80,45 @@
       container.appendChild(label);
     }
 
-    // 番号入力フォームのsubmitイベント
+    // フォームsubmitイベントで複数番号処理
     form.addEventListener('submit', e => {
       e.preventDefault();
       errorMsg.textContent = '';
-      const val = Number(numInput.value);
 
-      if(val < 1 || val > 100 || isNaN(val)) {
-        errorMsg.textContent = '1から100の数字を入力してね';
+      // 入力をカンマ区切りで分割しトリム
+      const inputs = numInput.value.split(',').map(s => s.trim()).filter(s => s !== '');
+      const invalids = [];
+      const processed = [];
+
+      inputs.forEach(str => {
+        const val = Number(str);
+        if (val >= 1 && val <= 100 && !isNaN(val)) {
+          processed.push(val);
+        } else if (str !== '') {
+          invalids.push(str);
+        }
+      });
+
+      if (invalids.length > 0) {
+        errorMsg.textContent = `無効な番号があります: ${invalids.join(', ')}`;
         return;
       }
 
-      const checkbox = document.getElementById(`chk_${val}`);
-      if(!checkbox) {
-        errorMsg.textContent = '対応するチェックボックスがありません';
+      if (processed.length === 0) {
+        errorMsg.textContent = '番号を入力してね';
         return;
       }
 
-      // チェック状態トグル
-      checkbox.checked = !checkbox.checked;
-      savedStates[val] = checkbox.checked;
+      // トグル処理
+      processed.forEach(num => {
+        const checkbox = document.getElementById(`chk_${num}`);
+        if(checkbox) {
+          checkbox.checked = !checkbox.checked;
+          savedStates[num] = checkbox.checked;
+        }
+      });
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
-
       numInput.value = '';
     });
   </script>
