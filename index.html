@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>1~100 チェックボックス保存</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 400px;
+      margin: 20px auto;
+    }
+    label {
+      display: block;
+      margin: 4px 0;
+      cursor: pointer;
+    }
+    input[type="checkbox"] {
+      margin-right: 8px;
+      transform: scale(1.2);
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>1〜100 チェックボックス</h1>
+  <div id="checkboxContainer"></div>
+
+  <script>
+    const container = document.getElementById('checkboxContainer');
+    const STORAGE_KEY = 'checkboxStates';
+
+    // 保存されてるデータ取得 or 空オブジェクト
+    const savedStates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    // 1~100チェックボックス生成
+    for(let i = 1; i <= 100; i++) {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `chk_${i}`;
+      checkbox.checked = !!savedStates[i]; // 保存されてたらチェック
+
+      checkbox.addEventListener('change', () => {
+        savedStates[i] = checkbox.checked;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStates));
+      });
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(` No.${i}`));
+      container.appendChild(label);
+    }
+  </script>
+
+</body>
+</html>
