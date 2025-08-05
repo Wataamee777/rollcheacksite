@@ -128,8 +128,8 @@
         switch (mode) {
           case 'toggle':
             if (!cb.checked) {
-              cb.checked = true;
-              newStates[num] = true;
+              cb.checked = !cb.checked;
+              newStates[num] = cb.checked;
             }
             break;
           case 'on':
