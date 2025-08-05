@@ -169,4 +169,75 @@
           Object.assign(savedStates, newStates);
           updateCount();
         } else {
-        
+          alert('保存失敗');
+        }
+      }
+    }
+
+    for (let i = 1; i <= MAX; i++) {
+      const label = document.createElement('label');
+      label.className = 'cb-item';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `chk_${i}`;
+      checkbox.checked = !!savedStates[i];
+
+      checkbox.addEventListener('change', () => {
+        const update = {};
+        update[i] = checkbox.checked;
+        if (saveStates(update)) {
+          Object.assign(savedStates, update);
+          updateCount();
+        } else {
+          checkbox.checked = !checkbox.checked;
+          alert('保存に失敗したため元に戻しました。');
+        }
+      });
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(`No.${i}`));
+      container.appendChild(label);
+    }
+
+    updateCount();
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const input = numInput.value;
+      const invalids = findInvalids(input);
+      if (invalids.length > 0) {
+        errorMsg.textContent = `無効: ${invalids.join(', ')}`;
+        return;
+      }
+      const nums = parseNumbers(input);
+      if (nums.length === 0) {
+        errorMsg.textContent = '番号を入力してね';
+        return;
+      }
+      updateCheckboxes(nums, 'toggle');
+      numInput.value = '';
+    });
+
+    form.querySelectorAll('button[data-action="on"], button[data-action="off"]').forEach(button => {
+      button.addEventListener('click', () => {
+        errorMsg.textContent = '';
+        const input = numInput.value;
+        const invalids = findInvalids(input);
+        if (invalids.length > 0) {
+          errorMsg.textContent = `無効: ${invalids.join(', ')}`;
+          return;
+        }
+        const nums = parseNumbers(input);
+        if (nums.length === 0) {
+          errorMsg.textContent = '番号を入力してね';
+          return;
+        }
+        updateCheckboxes(nums, button.dataset.action);
+        numInput.value = '';
+      });
+    });
+  </script>
+
+</body>
+</html>
