@@ -2,30 +2,33 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>花リスト → JSON 自動連番ツール（改良版）</title>
+  <title>花リスト → JSON 自動連番ツール（ダウンロード対応）</title>
   <style>
     body { font-family: sans-serif; background: #f0f8ff; padding: 20px; }
     textarea { width: 100%; height: 200px; margin-bottom: 20px; font-family: monospace; }
-    button { padding: 10px 20px; font-size: 1em; }
+    button { padding: 10px 20px; font-size: 1em; margin-right: 10px; }
     pre { background: #fff; padding: 10px; white-space: pre-wrap; border: 1px solid #ccc; }
     h2 { margin-top: 30px; }
   </style>
 </head>
 <body>
-  <h1>🌸 花名リスト → JSON 自動連番ツール（改良版）</h1>
+  <h1>🌸 花名リスト → JSON 自動連番ツール（ダウンロード対応）</h1>
   <p>改行・スペース・カンマで区切ってもOK！</p>
 
   <textarea id="input" placeholder="例：アサガオ, アジサイ 花 ヒマワリ\nサクラ"></textarea>
+  <br/>
   <button onclick="generateJson()">🌼 JSON生成</button>
+  <button onclick="downloadJson()" id="downloadBtn" disabled>⬇️ JSONダウンロード</button>
 
   <h2>✅ JSON出力（名前＋連番でユニーク化）</h2>
   <pre id="jsonOutput">{ }</pre>
 
   <script>
+    let latestJson = null;
+
     function generateJson() {
-      // 入力を改行・カンマ・スペースで分割し、空要素は除去
       const raw = document.getElementById("input").value.trim();
-      const names = raw.split(/[\n, 　]+/).map(x => x.trim()).filter(x => x !== "");
+      const names = raw.split(/[\n, 　 ]+/).map(x => x.trim()).filter(x => x !== "");
       
       const nameCount = {};
       const result = [];
@@ -41,8 +44,26 @@
       });
 
       const finalResult = result.map((item, i) => ({ id: i + 1, name: item.name }));
-
+      latestJson = finalResult;
       document.getElementById("jsonOutput").textContent = JSON.stringify(finalResult, null, 2);
+
+      // ダウンロードボタン有効化
+      document.getElementById("downloadBtn").disabled = false;
+    }
+
+    function downloadJson() {
+      if (!latestJson) return;
+      const blob = new Blob([JSON.stringify(latestJson, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "flower_list.json";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
     }
   </script>
 </body>
