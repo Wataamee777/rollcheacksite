@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ガチャメモ50</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 0 10px;
+    }
+    #checkboxContainer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .cb-item {
+      width: 80px;
+    }
+    input[type="checkbox"] {
+      margin-right: 4px;
+      transform: scale(1.1);
+      vertical-align: middle;
+    }
+    #toggleForm {
+      margin-bottom: 20px;
+    }
+    #toggleForm input[type="tel"] {
+      width: 280px;
+      padding: 4px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    #toggleForm button {
+      padding: 5px 12px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 6px;
+    }
+    #errorMsg {
+      color: red;
+      margin-top: 6px;
+      height: 18px;
+      white-space: pre-wrap;
+    }
+    #countDisplay {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ガチャメモ（50ver）</h1>
+
+  <div id="countDisplay">現在: 0 / 50</div>
+
+  <form id="toggleForm">
+    <label for="numInput">番号入力 (1〜100) 「.」区切り＋範囲OK（例: 1.5-10.50）</label><br/>
+    <input type="tel" id="numInput" placeholder="例: 1.5-10.50" />
+    <button type="submit" data-action="toggle">切替</button>
+    <button type="button" data-action="on">ON</button>
+    <button type="button" data-action="off">OFF</button>
+    <div id="errorMsg"></div>
+  </form>
+
+  <div id="checkboxContainer"></div>
+
+  <script>
+    const MAX = 50;
+    const STORAGE_KEY = 'checkboxStates';
+    const container = document.getElementById('checkboxContainer');
+    const form = document.getElementById('toggleForm');
+    const numInput = document.getElementById('numInput');
+    const errorMsg = document.getElementById('errorMsg');
+    const countDisplay = document.getElementById('countDisplay');
+    const savedStates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    function updateCount() {
+      let count = 0;
+      for (let i = 1; i <= MAX; i++) {
+        const cb = document.getElementById(`chk_${i}`);
+        if (cb && cb.checked) count++;
+      }
+      countDisplay.textContent = `現在: ${count} / ${MAX}`;
+    }
+
+    function saveStates(newStates) {
+      const current = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      const duplicates = Object.keys(newStates).filter(k => current[k] !== undefined && current[k] === newStates[k]);
+      if (duplicates.length === Object.keys(newStates).length) {
+        alert(`番号 ${duplicates.join(', ')} はすでに同じ状態です。`);
+        return false;
+      }
+      const merged = { ...current, ...newStates };
+      const jsonStr = JSON.stringify(merged);
+      const bytes = new Blob([jsonStr]).size;
+      if (bytes > 5 * 1024 * 1024) {
+        alert('保存できません。localStorageの容量上限に達しました。');
+        return false;
+      }
+      localStorage.setItem(STORAGE_KEY, jsonStr);
+      return true;
+    }
+
+    function parseNumbers(input) {
+      const result = [];
+      const parts = input.split('.').map(s => s.trim()).filter(s => s !== '');
+      parts.forEach(part => {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(x => parseInt(x));
+          if (!isNaN(start) && !isNaN(end) && start >= 1 && end <= MAX && start <= end) {
+            for (let i = start; i <= end; i++) result.push(i);
+          }
+        } else {
+          const num = parseInt(part);
+          if (!isNaN(num) && num >= 1 && num <= MAX) result.push(num);
+        }
+      });
+      return [...new Set(result)];
+    }
+
+    function findInvalids(input) {
+      const invalids = [];
+      const parts = input.split('.').map(s => s.trim()).filter(s => s !== '');
+      parts.forEach(part => {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(x => parseInt(x));
+          if (isNaN(start) || isNaN(end) || start < 1 || end > MAX || start > end) {
+            invalids.push(part);
+          }
+        } else {
+          const num = parseInt(part);
+          if (isNaN(num) || num < 1 || num > MAX) invalids.push(part);
+        }
+      });
+      return invalids;
+    }
+
+    function updateCheckboxes(nums, mode) {
+      const newStates = {};
+      nums.forEach(num => {
+        const cb = document.getElementById(`chk_${num}`);
+        if (!cb) return;
+        switch (mode) {
+          case 'toggle':
+            cb.checked = !cb.checked;
+            newStates[num] = cb.checked;
+            break;
+          case 'on':
+            if (!cb.checked) {
+              cb.checked = true;
+              newStates[num] = true;
+            }
+            break;
+          case 'off':
+            if (cb.checked) {
+              cb.checked = false;
+              newStates[num] = false;
+            }
+            break;
+        }
+      });
+
+      if (Object.keys(newStates).length > 0) {
+        if (saveStates(newStates)) {
+          Object.assign(savedStates, newStates);
+          updateCount();
+        } else {
+          alert('保存失敗');
+        }
+      }
+    }
+
+    for (let i = 1; i <= MAX; i++) {
+      const label = document.createElement('label');
+      label.className = 'cb-item';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `chk_${i}`;
+      checkbox.checked = !!savedStates[i];
+
+      checkbox.addEventListener('change', () => {
+        const update = {};
+        update[i] = checkbox.checked;
+        if (saveStates(update)) {
+          Object.assign(savedStates, update);
+          updateCount();
+        } else {
+          checkbox.checked = !checkbox.checked;
+          alert('保存に失敗したため元に戻しました。');
+        }
+      });
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(`No.${i}`));
+      container.appendChild(label);
+    }
+
+    updateCount();
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const input = numInput.value;
+      const invalids = findInvalids(input);
+      if (invalids.length > 0) {
+        errorMsg.textContent = `無効: ${invalids.join(', ')}`;
+        return;
+      }
+      const nums = parseNumbers(input);
+      if (nums.length === 0) {
+        errorMsg.textContent = '番号を入力してね';
+        return;
+      }
+      updateCheckboxes(nums, 'toggle');
+      numInput.value = '';
+    });
+
+    form.querySelectorAll('button[data-action="on"], button[data-action="off"]').forEach(button => {
+      button.addEventListener('click', () => {
+        errorMsg.textContent = '';
+        const input = numInput.value;
+        const invalids = findInvalids(input);
+        if (invalids.length > 0) {
+          errorMsg.textContent = `無効: ${invalids.join(', ')}`;
+          return;
+        }
+        const nums = parseNumbers(input);
+        if (nums.length === 0) {
+          errorMsg.textContent = '番号を入力してね';
+          return;
+        }
+        updateCheckboxes(nums, button.dataset.action);
+        numInput.value = '';
+      });
+    });
+  </script>
+
+</body>
+</html>
